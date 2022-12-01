@@ -11,28 +11,25 @@
 
 var chat = new function(){
 	var _events = {};
+	var typingstack = 0;
 	this.getChatHistory = getChatHistory;
 	function getChatHistory(callback){
-		var d = new Date();
-		d.setTime(d.getTime()-200000)
-		var chats = [];
-		chats.push({datetime:new Date(d.setTime(d.getTime()+2000)).toISOString(), message:"hello", from:"Visitor"});
-		chats.push({datetime:new Date(d.setTime(d.getTime()+4000)).toISOString(), message:"Hi, how can I help you?", from:"Operator"});
-		chats.push({datetime:new Date(d.setTime(d.getTime()+4000)).toISOString(), message:"I'm looking for a size 7, but can't find it", from:"Visitor"});
-		chats.push({datetime:new Date(d.setTime(d.getTime()+4000)).toISOString(), message:"Ok, one moment I'll check the stock", from:"Operator"})
-		chats.push({datetime:new Date(d.setTime(d.getTime()+10000)).toISOString(), message:"I'm sorry, there is no sie 7 available in that colour. There are some in red and blue however", from:"Operator"})
-		chats.push({datetime:new Date(d.setTime(d.getTime()+4000)).toISOString(), message:"Oh great, thank you", from:"Visitor"});
-		chats.push({datetime:new Date(d.setTime(d.getTime()+4000)).toISOString(), message:"my pleasure :-)", from:"Operator"});
+		var chats = JSON.parse(localStorage.getItem("chat-test") || null) || [];
 
 		if(typeof(callback) == "function") {
 			setTimeout(callback(chats), 1000);
 		}
 	}
 
-	
+	function saveChatHistory(event) {
+		localStorage.setItem("chat-test", JSON.stringify([...JSON.parse(localStorage.getItem("chat-test") || null) || [], event]))
+	};
+
 	this.sendChat = sendChat;
 	function sendChat(str){
 		dispatchChatEvent(str, "Visitor");
+		typingstack++;
+		raiseEvent("typingstarted", Boolean(typingstack));
 		if(str.indexOf("hello") != -1 || str.indexOf("hi") != -1) {
 			setTimeout(operatorGreetingChat, 2000);
 		} else if(str.indexOf("?") != -1) {
@@ -83,15 +80,19 @@ var chat = new function(){
 
 		// Listen for the event
 		//chat.addEventListener('chatreceived', function (e) { console.log(e.detail) }, false);
-
+		saveChatHistory({datetime:new Date().toISOString(), message:msg, from:from});
 		// Dispatch the event.
-		raiseEvent("chatreceived", {"chat":{datetime:new Date().toISOString(), message:msg, from:from}});
+		raiseEvent("chatreceived", event);
+
+		if (from === "operator") {
+			typingstack--;
+			raiseEvent("typingended", Boolean(typingstack));
+		}
 	}
 
 	this.addListener = function(eventName, callback) {
-		var events = _events;
-	 	callbacks = events[eventName] = events[eventName] || [];
-		callbacks.push(callback);
+		_events[eventName] = _events[eventName] || [];
+		_events[eventName].push(callback);
 	};
 
 	function raiseEvent(eventName, args) {
@@ -103,13 +104,3 @@ var chat = new function(){
 		}
 	}
 }
-
- 
-$(function(){
-
-	function loadData(chats){
-		$("#chatHistory").append(chats[0].message);
-	}
-
-	chat.getChatHistory(loadData);
-});
