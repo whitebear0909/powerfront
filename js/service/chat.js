@@ -8,7 +8,6 @@
 
 */
 
-
 var chat = new function(){
 	var _events = {};
 	var typingstack = 0;

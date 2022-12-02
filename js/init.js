@@ -1,6 +1,7 @@
+//parse iso date str to readable date format
 function parseDateStr(isoDateStr) {
     const d = new Date();
-    const msgDate = new Date(isoDateStr.slice(0, -1));
+    const msgDate = new Date(isoDateStr);
 
     let day = '';
     if(d.getDate() === msgDate.getDate()) {
@@ -20,6 +21,7 @@ function parseDateStr(isoDateStr) {
     return hours + ':' + mins + ampm + ' ' + day;
 }
 
+//add new message item element to chat history list
 function appendNewMessage(from, datetime, message) {
     const alignRightText =  from === 'Visitor' ? 'align-right' : '';
     const floatRightText = from === 'Visitor' ? 'other-message float-right' : 'my-message';
@@ -38,6 +40,7 @@ function appendNewMessage(from, datetime, message) {
     spinner_elem.parentNode.insertBefore(list_item_elem, spinner_elem);
 }
 
+//move historybox scroll to bottom whenever message is added to history
 function scrollToBottom() {
     document.getElementById("historyBox").scroll({
         behavior: 'smooth',
@@ -71,10 +74,12 @@ function loadData(chats){
 }
 
 function onLoad() {
+    //fetch message history data from local storage when page loaded
     chat.getChatHistory(loadData);
 
     chat.addListener("chatreceived", onChatReceivedCallback);
 
+    //to show spinner until receive other's message
     chat.addListener("typingstarted", function(isFull) {
         if(isFull) {
             document.getElementById("typing").style.display = 'block';
@@ -86,13 +91,23 @@ function onLoad() {
         if(!isFull) document.getElementById("typing").style.display = 'none';
     });
 
+    //when click send button
     document.getElementById("chatSubmit").onclick  = function() {
-        chat.sendChat(document.getElementById('chatInput').value);
-        document.getElementById('chatInput').value = '';
+        const text = document.getElementById('chatInput').value;
+        if(text !== ''){
+            chat.sendChat(text);
+            document.getElementById('chatInput').value = '';
+        } 
     };
 
     //ctrl+Enter event
     document.getElementById("chatInput").onkeydown = function(e) {
-        if(e.ctrlKey && e.key === 'Enter') chat.sendChat(document.getElementById('chatInput').value);
+        if(e.ctrlKey && e.key === 'Enter'){
+            const text = document.getElementById('chatInput').value;
+            if(text !== ''){
+                chat.sendChat(text);
+                document.getElementById('chatInput').value = '';
+            }
+        }
     }
 }
